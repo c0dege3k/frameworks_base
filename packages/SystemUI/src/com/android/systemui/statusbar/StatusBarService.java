@@ -398,7 +398,7 @@ public class StatusBarService extends Service implements CommandQueue.Callbacks 
                 notification.notification.fullScreenIntent.send();
             } catch (PendingIntent.CanceledException e) {
             }
-        } 
+        }
 
         StatusBarIconView iconView = addNotificationViews(key, notification);
         if (iconView == null) return;
@@ -406,7 +406,7 @@ public class StatusBarService extends Service implements CommandQueue.Callbacks 
         if (shouldTick) {
             tick(notification);
         }
-        
+
         // Recalculate the position of the sliding windows and the titles.
         setAreThereNotifications();
         updateExpandedViewPos(EXPANDED_LEAVE_ALONE);
@@ -1300,7 +1300,7 @@ public class StatusBarService extends Service implements CommandQueue.Callbacks 
     void updateExpandedViewPos(int expandedPosition) {
         if (SPEW) {
             Slog.d(TAG, "updateExpandedViewPos before expandedPosition=" + expandedPosition
-                    + " mTrackingParams.y=" 
+                    + " mTrackingParams.y="
                     + ((mTrackingParams == null) ? "???" : mTrackingParams.y)
                     + " mTrackingPosition=" + mTrackingPosition);
         }
