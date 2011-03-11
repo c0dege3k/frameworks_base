@@ -125,6 +125,7 @@ public class NotificationManagerService extends INotificationManager.Stub
     private boolean mGreenLightOn = false;
 
     // for adb connected notifications
+    private boolean mUsbConnected = false;
     private boolean mAdbNotificationShown = false;
     private Notification mAdbNotification;
 
@@ -365,10 +366,12 @@ public class NotificationManagerService extends INotificationManager.Stub
                 }
             } else if (action.equals(UsbManager.ACTION_USB_STATE)) {
                 Bundle extras = intent.getExtras();
-                boolean usbConnected = extras.getBoolean(UsbManager.USB_CONNECTED);
-                boolean adbEnabled = (UsbManager.USB_FUNCTION_ENABLED.equals(
-                                    extras.getString(UsbManager.USB_FUNCTION_ADB)));
-                updateAdbNotification(usbConnected && adbEnabled);
+                mUsbConnected = extras.getBoolean(Usb.USB_CONNECTED);
+                boolean adbEnabled = (Usb.USB_FUNCTION_ENABLED.equals(
+                                    extras.getString(Usb.USB_FUNCTION_ADB)));
+                updateAdbNotification(mUsbConnected && adbEnabled);
+            } else if (action.equals(Usb.ACTION_USB_DISCONNECTED)) {
+                updateAdbNotification(false);
             } else if (action.equals(Intent.ACTION_PACKAGE_REMOVED)
                     || action.equals(Intent.ACTION_PACKAGE_RESTARTED)
                     || (queryRestart=action.equals(Intent.ACTION_QUERY_PACKAGE_RESTART))
@@ -476,6 +479,29 @@ public class NotificationManagerService extends INotificationManager.Stub
         }
     }
 
+    class AdbNotifyObserver extends ContentObserver {
+        AdbNotifyObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            ContentResolver resolver = mContext.getContentResolver();
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                    Settings.Secure.ADB_ENABLED), false, this);
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                    Settings.Secure.ADB_NOTIFY), false, this);
+        }
+
+        @Override public void onChange(boolean selfChange) {
+            ContentResolver resolver = mContext.getContentResolver();
+            boolean adbEnabled = Settings.Secure.getInt(resolver,
+                    Settings.Secure.ADB_ENABLED, 0) != 0;
+            boolean notifyEnabled = Settings.Secure.getInt(resolver,
+                    Settings.Secure.ADB_NOTIFY, 1) != 0;
+            updateAdbNotification(adbEnabled && notifyEnabled && mUsbConnected);
+        }
+    }
+
     NotificationManagerService(Context context, StatusBarManagerService statusBar,
             LightsService lights)
     {
@@ -532,6 +558,9 @@ public class NotificationManagerService extends INotificationManager.Stub
 
         SettingsObserver observer = new SettingsObserver(mHandler);
         observer.observe();
+
+        AdbNotifyObserver notifyObserver = new AdbNotifyObserver(mHandler);
+        notifyObserver.observe();
     }
 
     void systemReady() {
