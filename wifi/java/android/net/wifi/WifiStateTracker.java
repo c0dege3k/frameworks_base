@@ -24,17 +24,6 @@ import static android.net.wifi.WifiManager.WIFI_STATE_UNKNOWN;
 
 import android.app.ActivityManagerNative;
 import android.app.AlarmManager;
-import android.app.Notification;
-import android.app.PendingIntent;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHeadset;
-import android.bluetooth.BluetoothA2dp;
-import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.ContentObserver;
 import android.net.NetworkInfo;
 import android.net.NetworkStateTracker;
 import android.net.DhcpInfo;
@@ -235,7 +224,6 @@ public class WifiStateTracker extends NetworkStateTracker {
 
     private static final int DHCP_RENEW = 0;
     private static final String ACTION_DHCP_RENEW = "android.net.wifi.DHCP_RENEW";
-
 
     /* Tracks if any network in the configuration is disabled */
     private AtomicBoolean mIsAnyNetworkDisabled = new AtomicBoolean(false);
