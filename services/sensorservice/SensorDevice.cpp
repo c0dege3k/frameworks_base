@@ -136,11 +136,6 @@ SensorDevice::SensorDevice()
 
     if (mSensorModule) {
 #ifdef ENABLE_SENSORS_COMPAT
-#ifdef SENSORS_NO_OPEN_CHECK
-        sensors_control_open(&mSensorModule->common, &mSensorControlDevice) ;
-        sensors_data_open(&mSensorModule->common, &mSensorDataDevice) ;
-        mOldSensorsCompatMode = true;
-#else
         if (!sensors_control_open(&mSensorModule->common, &mSensorControlDevice)) {
             if (sensors_data_open(&mSensorModule->common, &mSensorDataDevice)) {
                 LOGE("couldn't open data device in backwards-compat mode for module %s (%s)",
@@ -153,21 +148,16 @@ SensorDevice::SensorDevice()
             LOGE("couldn't open control device in backwards-compat mode for module %s (%s)",
                     SENSORS_HARDWARE_MODULE_ID, strerror(-err));
         }
-#endif
 #else
+
         err = sensors_open(&mSensorModule->common, &mSensorDevice);
         LOGE_IF(err, "couldn't open device for module %s (%s)",
                 SENSORS_HARDWARE_MODULE_ID, strerror(-err));
 #endif
 
-
         if (mSensorDevice || mOldSensorsCompatMode) {
             sensor_t const* list;
             ssize_t count = mSensorModule->get_sensors_list(mSensorModule, &list);
-
-#ifdef USE_LGE_ALS_DUMMY
-            count = addDummyLGESensor(&list, count);
-#endif
 
             if (mOldSensorsCompatMode) {
                 mOldSensorsList = list;
@@ -235,6 +225,7 @@ ssize_t SensorDevice::poll(sensors_event_t* buffer, size_t count) {
             sensors_data_t oldBuffer;
             long result =  mSensorDataDevice->poll(mSensorDataDevice, &oldBuffer);
             int sensorType = -1;
+            int maxRange = -1;
  
             if (result == 0x7FFFFFFF) {
                 continue;
@@ -244,6 +235,7 @@ ssize_t SensorDevice::poll(sensors_event_t* buffer, size_t count) {
                 for (size_t i=0 ; i<size_t(mOldSensorsCount) && sensorType < 0 ; i++) {
                     if (mOldSensorsList[i].handle == result) {
                         sensorType = mOldSensorsList[i].type;
+                        maxRange = mOldSensorsList[i].maxRange;
                         LOGV("mapped sensor type to %d",sensorType);
                     }
                 }
@@ -268,15 +260,6 @@ ssize_t SensorDevice::poll(sensors_event_t* buffer, size_t count) {
              * for the number of requested samples to fill, and deliver
              * it immediately */
             if (sensorType == SENSOR_TYPE_PROXIMITY) {
-#ifdef FOXCONN_SENSORS
-            /* Fix ridiculous API breakages from FIH. */
-            /* These idiots are returning -1 for FAR, and 1 for NEAR */
-                if (buffer[pollsDone].distance > 0) {
-                    buffer[pollsDone].distance = 0;
-                } else {
-                    buffer[pollsDone].distance = 1;
-                }
-#endif
                 return pollsDone+1;
             } else if (sensorType == SENSOR_TYPE_LIGHT) {
                 return pollsDone+1;
